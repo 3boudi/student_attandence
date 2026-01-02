@@ -9,21 +9,21 @@ from pathlib import Path
 
 from ..core.database import get_session
 from ..core.dependencies import get_current_admin, get_current_profile
-from controllers.admin_controller import admin_controller
-from controllers.user_controller import user_controller
-from controllers.attendance_controller import attendance_controller
-from controllers.justification_controller import justification_controller
-from schema.user import UserCreate, UserResponse
-from schema.students import StudentCreate, StudentResponse
-from schema.teacher import TeacherCreate, TeacherResponse
-from schema.specialty import SpecialtyCreate, SpecialtyResponse
-from schema.module import ModuleCreate, ModuleResponse
-from schema.report import ReportExport, ReportResponse
-from schema.bulk import BulkStudentImport, ImportResult
-from schema.filter import PaginationParams, UserFilter
-from schema.stats import SystemStatistics
-from models.admin import Admin
-from models.user import User
+from ..controllers.admin_controller import admin_controller
+from ..controllers.user_controller import user_controller
+from ..controllers.attendance_controller import attendance_controller
+from ..controllers.justification_controller import justification_controller
+from ..schema.user import UserCreate, UserResponse
+from ..schema.student import StudentCreate, StudentResponse
+from ..schema.teacher import TeacherCreate, TeacherResponse
+from ..schema.specialty import SpecialtyCreate, SpecialtyResponse
+from ..schema.module import ModuleCreate, ModuleResponse
+from ..schema.report import ReportExport, ReportResponse
+from ..schema.bulk import BulkStudentImport, ImportResult
+from ..schema.filter import PaginationParams, UserFilter
+from ..schema.stats import SystemStatistics
+from ..models.admin import Admin
+from ..models.user import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

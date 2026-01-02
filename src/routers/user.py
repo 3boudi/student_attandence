@@ -7,11 +7,11 @@ from pathlib import Path
 
 from ..core.database import get_session
 from ..core.dependencies import get_current_user, get_current_profile, get_user_with_complete_profile
-from controllers.user_controller import user_controller
-from controllers.notification_controller import notification_controller
-from schema.user import UserUpdate, UserResponse
-from schema.notification import NotificationResponse
-from models.user import User
+from ..controllers.user_controller import user_controller
+from ..controllers.notification_controller import notification_controller
+from ..schema.user import UserUpdate, UserResponse
+from ..schema.notification import NotificationResponse
+from ..models.user import User
 
 router = APIRouter(prefix="/user", tags=["user"])
 

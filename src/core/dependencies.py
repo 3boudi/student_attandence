@@ -8,10 +8,10 @@ from jose import JWTError, jwt
 from .config import settings
 from .database import get_session
 from ..models.user import User
-from models.student import Student
-from models.teacher import Teacher
-from models.admin import Admin
-from schema.auth import TokenData
+from ..models.student import Student
+from ..models.teacher import Teacher
+from ..models.admin import Admin
+from ..schema.auth import TokenData
 
 # Security
 security = HTTPBearer()

@@ -3,6 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, ConfigDict
 import uuid
 
+# Login schema
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 # Base schemas
 class UserBase(BaseModel):
     full_name: str

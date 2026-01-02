@@ -3,19 +3,19 @@ from sqlmodel import Session, select, and_
 from fastapi import HTTPException, status
 from datetime import datetime, timedelta
 
-from models.attendance import AttendanceRecord
-from models.session import Session as ClassSession
-from models.student import Student
-from models.enums import AttendanceStatus
-from schema.attendance import AttendanceRecordCreate, AttendanceRecordUpdate
+from ..models.attendance import AttendanceRecord
+from ..models.session import Session as ClassSession
+from ..models.student import Student
+from ..models.enums import AttendanceStatus
+from ..schema.attendance import AttendanceRecordCreate, AttendanceRecordUpdate
 from .base_controller import BaseController
 
 class AttendanceController(BaseController[AttendanceRecord, AttendanceRecordCreate, AttendanceRecordUpdate]):
     def __init__(self):
         super().__init__(AttendanceRecord)
     
-    def mark_attendance_bulk(self, db: Session, session_id: str,
-                            student_ids: List[str],
+    def mark_attendance_bulk(self, db: Session, session_id: int,
+                            student_ids: List[int],
                             status: AttendanceStatus = AttendanceStatus.PRESENT) -> List[AttendanceRecord]:
         """Mark attendance for multiple students"""
         # Check if session exists and is active
@@ -82,8 +82,8 @@ class AttendanceController(BaseController[AttendanceRecord, AttendanceRecordCrea
         return attendance_records
     
     def get_attendance_by_student_and_session(self, db: Session,
-                                            student_id: str,
-                                            session_id: str) -> Optional[AttendanceRecord]:
+                                            student_id: int,
+                                            session_id: int) -> Optional[AttendanceRecord]:
         """Get attendance record for specific student and session"""
         query = select(AttendanceRecord).where(
             AttendanceRecord.student_id == student_id,
@@ -92,7 +92,7 @@ class AttendanceController(BaseController[AttendanceRecord, AttendanceRecordCrea
         attendance = db.exec(query).first()
         return attendance
     
-    def update_attendance_status(self, db: Session, attendance_id: str,
+    def update_attendance_status(self, db: Session, attendance_id: int,
                                 status: AttendanceStatus) -> AttendanceRecord:
         """Update attendance status"""
         attendance = self.get(db, attendance_id)
@@ -105,9 +105,9 @@ class AttendanceController(BaseController[AttendanceRecord, AttendanceRecordCrea
         return attendance
     
     def get_attendance_summary(self, db: Session,
-                              student_id: Optional[str] = None,
-                              module_id: Optional[str] = None,
-                              specialty_id: Optional[str] = None,
+                              student_id: Optional[int] = None,
+                              module_id: Optional[int] = None,
+                              specialty_id: Optional[int] = None,
                               start_date: Optional[datetime] = None,
                               end_date: Optional[datetime] = None) -> Dict[str, Any]:
         """Get attendance summary with filters"""

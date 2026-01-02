@@ -5,17 +5,17 @@ from datetime import datetime
 
 from ..core.database import get_session
 from ..core.dependencies import get_current_teacher, get_current_profile
-from controllers.teacher_controller import teacher_controller
-from controllers.session_controller import session_controller
-from controllers.attendance_controller import attendance_controller
-from controllers.justification_controller import justification_controller
-from schema.session import SessionCreate, SessionResponse, SessionWithQR
-from schema.attendance import AttendanceRecordResponse, AttendanceBulkCreate, AttendanceSummary
-from schema.justification import JustificationResponse, JustificationValidation
-from schema.filter import DateRangeFilter
-from schema.stats import TeacherStatistics
-from models.teacher import Teacher
-from models.user import User
+from ..controllers.teacher_controller import teacher_controller
+from ..controllers.session_controller import session_controller
+from ..controllers.attendance_controller import attendance_controller
+from ..controllers.justification_controller import justification_controller
+from ..schema.session import SessionCreate, SessionResponse, SessionWithQR
+from ..schema.attendance import AttendanceRecordResponse, AttendanceBulkCreate, AttendanceSummary
+from ..schema.justification import JustificationResponse, JustificationValidation
+from ..schema.filter import DateRangeFilter
+from ..schema.stats import TeacherStatistics
+from ..models.teacher import Teacher
+from ..models.user import User
 
 router = APIRouter(prefix="/teachers", tags=["teachers"])
 

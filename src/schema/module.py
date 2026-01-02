@@ -11,7 +11,7 @@ class ModuleBase(BaseModel):
 
 class ModuleCreate(ModuleBase):
     """Schema for creating a module"""
-    specialty_id: Optional[str] = None
+    specialty_id: Optional[int] = None
 
 class ModuleUpdate(BaseModel):
     """Schema for updating a module"""
@@ -19,12 +19,12 @@ class ModuleUpdate(BaseModel):
     module_code: Optional[str] = None
     description: Optional[str] = None
     credits: Optional[int] = None
-    specialty_id: Optional[str] = None
+    specialty_id: Optional[int] = None
 
 class ModuleResponse(ModuleBase):
     """Schema for module response"""
-    id: str
-    specialty_id: Optional[str] = None
+    id: int
+    specialty_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     specialty: Optional[Dict[str, Any]] = None

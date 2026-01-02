@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+
 import os
 import logging
 import datetime
@@ -12,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 from .core.config import settings
 from .core.database import init_db
-from .routers import user, student, teacher, admin
+# Comment out other routers for auth testing - only include auth_router
+# from .routers import user, student, teacher, admin
 from .auth.router import auth_router
 
 @asynccontextmanager
@@ -74,12 +76,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers - only auth router for testing
 app.include_router(auth_router, prefix="/api/auth")
-app.include_router(user.router, prefix="/api")
-app.include_router(student.router, prefix="/api")
-app.include_router(teacher.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
+# Comment out other routers for auth testing
+# app.include_router(user.router, prefix="/api")
+# app.include_router(student.router, prefix="/api")
+# app.include_router(teacher.router, prefix="/api")
+# app.include_router(admin.router, prefix="/api")
 
 @app.get("/")
 async def root():

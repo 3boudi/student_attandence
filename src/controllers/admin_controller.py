@@ -4,19 +4,19 @@ from fastapi import HTTPException, status
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
-from models.admin import Admin
-from models.user import User
-from models.student import Student
-from models.teacher import Teacher
-from models.specialty import Specialty
-from models.module import Module
-from models.schedule import Schedule
-from models.attendance import AttendanceRecord
-from models.session import Session as ClassSession
-from models.teacher import TeacherModule
-from schema.specialty import SpecialtyCreate, SpecialtyUpdate
-from schema.module import ModuleCreate, ModuleUpdate
-from schema.schedule import ScheduleCreate, ScheduleUpdate
+from ..models.admin import Admin
+from ..models.user import User
+from ..models.student import Student
+from ..models.teacher import Teacher
+from ..models.specialty import Specialty
+from ..models.module import Module
+from ..models.schedule import Schedule
+from ..models.attendance import AttendanceRecord
+from ..models.session import Session as ClassSession
+from ..models.teacher import TeacherModule
+from ..schema.specialty import SpecialtyCreate, SpecialtyUpdate
+from ..schema.module import ModuleCreate, ModuleUpdate
+from ..schema.schedule import ScheduleCreate, ScheduleUpdate
 from .base_controller import BaseController
 
 # Password hashing
@@ -29,17 +29,17 @@ class AdminController(BaseController[Admin, None, None]):
     def __init__(self):
         super().__init__(Admin)
     
-    def get_admin_by_user_id(self, db: Session, user_id: str) -> Optional[Admin]:
+    def get_admin_by_user_id(self, db: Session, user_id: int) -> Optional[Admin]:
         """Get admin by user ID"""
         query = select(Admin).where(Admin.user_id == user_id)
         admin = db.exec(query).first()
         return admin
     
     # Student Management
-    def add_student(self, db: Session, user_data: Dict[str, Any], 
-                   specialty_id: Optional[str] = None) -> Student:
+    def add_student(self, db: Session, user_data: Dict[str, Any],
+                   specialty_id: Optional[int] = None) -> Student:
         """Add a new student"""
-        from auth.schemas import UserCreate
+        from ..auth.schemas import UserCreate
         
         # Create user first
         user_create = UserCreate(
@@ -49,8 +49,8 @@ class AdminController(BaseController[Admin, None, None]):
         
         # Note: In practice, you'd use the UserManager to create the user
         # For now, we'll create directly
-        from models.user import User
-        from models.student import Student
+        from ..models.user import User
+        from ..models.student import Student
         
         # Check if user with email already exists
         existing_user = db.exec(
@@ -83,7 +83,7 @@ class AdminController(BaseController[Admin, None, None]):
         
         return student
     
-    def update_student(self, db: Session, student_id: str, 
+    def update_student(self, db: Session, student_id: int, 
                       updates: Dict[str, Any]) -> Student:
         """Update student information"""
         student = db.get(Student, student_id)
@@ -103,7 +103,7 @@ class AdminController(BaseController[Admin, None, None]):
         db.refresh(student)
         return student
     
-    def delete_student(self, db: Session, student_id: str):
+    def delete_student(self, db: Session, student_id: int):
         """Delete a student"""
         student = db.get(Student, student_id)
         if not student:
@@ -125,9 +125,9 @@ class AdminController(BaseController[Admin, None, None]):
     # Teacher Management
     def add_teacher(self, db: Session, user_data: Dict[str, Any]) -> Teacher:
         """Add a new teacher"""
-        from auth.schemas import UserCreate
-        from models.user import User
-        from models.teacher import Teacher
+        from ..auth.schemas import UserCreate
+        from ..models.user import User
+        from ..models.teacher import Teacher
         
         # Create user
         user_create = UserCreate(
@@ -163,8 +163,8 @@ class AdminController(BaseController[Admin, None, None]):
         
         return teacher
     
-    def assign_module_to_teacher(self, db: Session, teacher_id: str, 
-                                module_id: str) -> TeacherModule:
+    def assign_module_to_teacher(self, db: Session, teacher_id: int, 
+                                module_id: int) -> TeacherModule:
         """Assign a module to a teacher"""
         # Check if teacher exists
         teacher = db.get(Teacher, teacher_id)
@@ -208,10 +208,10 @@ class AdminController(BaseController[Admin, None, None]):
         return assignment
     
     # Module Management
-    def add_module(self, db: Session, module_data: Dict[str, Any], 
-                  specialty_id: Optional[str] = None) -> Module:
+    def add_module(self, db: Session, module_data: Dict[str, Any],
+                  specialty_id: Optional[int] = None) -> Module:
         """Add a new module"""
-        from models.module import Module
+        from ..models.module import Module
         
         # Check if module code already exists
         existing_module = db.exec(
@@ -238,7 +238,7 @@ class AdminController(BaseController[Admin, None, None]):
     # Specialty Management
     def add_specialty(self, db: Session, specialty_data: Dict[str, Any]) -> Specialty:
         """Add a new specialty"""
-        from models.specialty import Specialty
+        from ..models.specialty import Specialty
         
         # Check if specialty with same name and year already exists
         existing_specialty = db.exec(
@@ -263,10 +263,10 @@ class AdminController(BaseController[Admin, None, None]):
         return specialty
     
     # Schedule Management
-    def create_schedule(self, db: Session, specialty_id: str,
+    def create_schedule(self, db: Session, specialty_id: int,
                        schedule_data: Dict[str, Any]) -> Schedule:
         """Create a schedule for a specialty"""
-        from models.schedule import Schedule
+        from ..models.schedule import Schedule
         
         # Check if specialty exists
         specialty = db.get(Specialty, specialty_id)
@@ -328,7 +328,7 @@ class AdminController(BaseController[Admin, None, None]):
     
     def get_system_statistics(self, db: Session) -> Dict[str, Any]:
         """Get system-wide statistics"""
-        from models.enums import AttendanceStatus
+        from ..models.enums import AttendanceStatus
         
         # Count users
         total_users = db.exec(select(User)).count()
@@ -346,8 +346,8 @@ class AdminController(BaseController[Admin, None, None]):
         present = sum(1 for r in attendance_records if r.status == AttendanceStatus.PRESENT)
         
         # Justification statistics
-        from models.justification import Justification
-        from models.enums import JustificationStatus
+        from ..models.justification import Justification
+        from ..models.enums import JustificationStatus
         justifications = db.exec(select(Justification)).all()
         pending_justifications = sum(1 for j in justifications if j.status == JustificationStatus.PENDING)
         

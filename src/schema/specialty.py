@@ -18,7 +18,7 @@ class SpecialtyUpdate(BaseModel):
 
 class SpecialtyResponse(SpecialtyBase):
     """Schema for specialty response"""
-    id: str
+    id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     modules: Optional[List[Dict[str, Any]]] = None

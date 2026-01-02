@@ -3,9 +3,9 @@ from sqlmodel import Session, select, and_
 from fastapi import HTTPException, status
 from datetime import datetime
 
-from models.justification import Justification
-from models.enums import JustificationStatus
-from schema.justification import JustificationCreate, JustificationUpdate
+from ..models.justification import Justification
+from ..models.enums import JustificationStatus
+from ..schema.justification import JustificationCreate, JustificationUpdate
 from .base_controller import BaseController
 
 class JustificationController(BaseController[Justification, JustificationCreate, JustificationUpdate]):
@@ -21,7 +21,7 @@ class JustificationController(BaseController[Justification, JustificationCreate,
         justifications = db.exec(query).all()
         return justifications
     
-    def get_justifications_by_student(self, db: Session, student_id: str,
+    def get_justifications_by_student(self, db: Session, student_id: int,
                                      status: Optional[JustificationStatus] = None) -> List[Justification]:
         """Get justifications for a specific student"""
         query = select(Justification).where(
@@ -44,8 +44,8 @@ class JustificationController(BaseController[Justification, JustificationCreate,
         justifications = db.exec(query).all()
         return justifications
     
-    def approve_justification(self, db: Session, justification_id: str,
-                             validator_id: str) -> Justification:
+    def approve_justification(self, db: Session, justification_id: int,
+                             validator_id: int) -> Justification:
         """Approve a justification"""
         justification = self.get(db, justification_id)
         
@@ -60,8 +60,8 @@ class JustificationController(BaseController[Justification, JustificationCreate,
         justification.validation_date = datetime.utcnow()
         
         # Update associated attendance record status
-        from models.attendance import AttendanceRecord
-        from models.enums import AttendanceStatus
+        from ..models.attendance import AttendanceRecord
+        from ..models.enums import AttendanceStatus
         
         attendance = db.get(AttendanceRecord, justification.attendance_record_id)
         if attendance:
@@ -73,8 +73,8 @@ class JustificationController(BaseController[Justification, JustificationCreate,
         db.refresh(justification)
         return justification
     
-    def reject_justification(self, db: Session, justification_id: str,
-                            validator_id: str, reason: str) -> Justification:
+    def reject_justification(self, db: Session, justification_id: int,
+                            validator_id: int, reason: str) -> Justification:
         """Reject a justification"""
         justification = self.get(db, justification_id)
         

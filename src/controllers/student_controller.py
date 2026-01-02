@@ -3,29 +3,29 @@ from sqlmodel import Session, select, or_
 from fastapi import HTTPException, status
 from datetime import datetime, timedelta
 
-from models.student import Student
-from models.user import User
-from models.attendance import AttendanceRecord
-from models.session import Session as ClassSession
-from models.justification import Justification
-from models.specialty import Specialty
-from schema.students import StudentCreate, StudentUpdate
-from schema.attendance import AttendanceRecordCreate, AttendanceBulkCreate
-from schema.justification import JustificationCreate, JustificationValidation
-from schema.filter import PaginationParams, DateRangeFilter
+from ..models.student import Student
+from ..models.user import User
+from ..models.attendance import AttendanceRecord
+from ..models.session import Session as ClassSession
+from ..models.justification import Justification
+from ..models.specialty import Specialty
+from ..schema.student import StudentCreate, StudentUpdate
+from ..schema.attendance import AttendanceRecordCreate, AttendanceBulkCreate
+from ..schema.justification import JustificationCreate, JustificationValidation
+from ..schema.filter import PaginationParams, DateRangeFilter
 from .base_controller import BaseController
 
 class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
     def __init__(self):
         super().__init__(Student)
     
-    def get_student_by_user_id(self, db: Session, user_id: str) -> Optional[Student]:
+    def get_student_by_user_id(self, db: Session, user_id: int) -> Optional[Student]:
         """Get student by user ID"""
         query = select(Student).where(Student.user_id == user_id)
         student = db.exec(query).first()
         return student
     
-    def get_student_with_user(self, db: Session, student_id: str) -> Optional[Student]:
+    def get_student_with_user(self, db: Session, student_id: int) -> Optional[Student]:
         """Get student with user details"""
         query = select(Student).where(Student.id == student_id)
         student = db.exec(query).first()
@@ -37,7 +37,7 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
         
         return student
     
-    def mark_attendance(self, db: Session, student_id: str, session_code: str) -> AttendanceRecord:
+    def mark_attendance(self, db: Session, student_id: int, session_code: str) -> AttendanceRecord:
         """Mark attendance for a student in a session"""
         # Find session by code
         session_query = select(ClassSession).where(
@@ -75,7 +75,7 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
             )
         
         # Create attendance record
-        from models.enums import AttendanceStatus
+        from ..models.enums import AttendanceStatus
         attendance = AttendanceRecord(
             student_id=student_id,
             session_id=session.id,
@@ -87,7 +87,7 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
         db.refresh(attendance)
         return attendance
     
-    def view_attendance(self, db: Session, student_id: str, 
+    def view_attendance(self, db: Session, student_id: int, 
                        filters: DateRangeFilter = None) -> List[AttendanceRecord]:
         """Get attendance records for a student"""
         query = select(AttendanceRecord).where(
@@ -106,8 +106,8 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
         attendance_records = db.exec(query).all()
         return attendance_records
     
-    def justify_absence(self, db: Session, student_id: str, 
-                       attendance_record_id: str, 
+    def justify_absence(self, db: Session, student_id: int, 
+                       attendance_record_id: int, 
                        justification_data: JustificationCreate) -> Justification:
         """Submit justification for absence"""
         # Check if attendance record exists and belongs to student
@@ -132,7 +132,7 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
             )
         
         # Check if attendance is marked as absent
-        from models.enums import AttendanceStatus
+        from ..models.enums import AttendanceStatus
         if attendance.status != AttendanceStatus.ABSENT:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -151,7 +151,7 @@ class StudentController(BaseController[Student, StudentCreate, StudentUpdate]):
         db.refresh(justification)
         
         return justification
-    def get_student_statics(self, db: Session, student_id: str) -> Dict[str, Any]:
+    def get_student_statics(self, db: Session, student_id: int) -> Dict[str, Any]:
         """Get attendance statistics for a student"""
         total_records = db.exec(
             select(AttendanceRecord).where(AttendanceRecord.student_id == student_id)

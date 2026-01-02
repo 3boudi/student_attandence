@@ -14,10 +14,10 @@ class DateRangeFilter(BaseModel):
 
 class AttendanceFilter(DateRangeFilter):
     """Schema for attendance filtering"""
-    student_id: Optional[str] = None
-    teacher_id: Optional[str] = None
-    module_id: Optional[str] = None
-    specialty_id: Optional[str] = None
+    student_id: Optional[int] = None
+    teacher_id: Optional[int] = None
+    module_id: Optional[int] = None
+    specialty_id: Optional[int] = None
     status: Optional[str] = None
 
 class UserFilter(BaseModel):
@@ -29,6 +29,6 @@ class UserFilter(BaseModel):
 
 class JustificationFilter(DateRangeFilter):
     """Schema for justification filtering"""
-    student_id: Optional[str] = None
-    teacher_id: Optional[str] = None
+    student_id: Optional[int] = None
+    teacher_id: Optional[int] = None
     status: Optional[str] = None

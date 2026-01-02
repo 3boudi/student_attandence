@@ -5,7 +5,7 @@ from .user import UserResponse
 
 class StudentBase(BaseModel):
     """Base student schema"""
-    specialty_id: Optional[str] = None
+    specialty_id: Optional[int] = None
 
 class StudentCreate(StudentBase):
     """Schema for creating a student"""
@@ -17,8 +17,8 @@ class StudentUpdate(BaseModel):
 
 class StudentResponse(StudentBase):
     """Schema for student response"""
-    id: str
-    user_id: str
+    id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     user: Optional[UserResponse] = None

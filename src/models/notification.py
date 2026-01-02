@@ -12,13 +12,16 @@ class NotificationBase(SQLModel):
     type: NotificationType
 
 class Notification(NotificationBase, table=True):
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    __tablename__ = "notifications"  # ✅ Add explicit table name
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_read: bool = Field(default=False)
     
     # Relationships
-    user_id: str = Field(foreign_key="users.id")
+    user_id: int = Field(foreign_key="public.users.id")
     user: Optional["User"] = Relationship(back_populates="notifications")
+    
     __table_args__ = {'schema': 'public'}
 
 

@@ -8,7 +8,7 @@ class ScheduleBase(BaseModel):
 
 class ScheduleCreate(ScheduleBase):
     """Schema for creating a schedule"""
-    specialty_id: str
+    specialty_id: int
 
 class ScheduleUpdate(BaseModel):
     """Schema for updating a schedule"""
@@ -16,8 +16,8 @@ class ScheduleUpdate(BaseModel):
 
 class ScheduleResponse(ScheduleBase):
     """Schema for schedule response"""
-    id: str
-    specialty_id: str
+    id: int
+    specialty_id: int
     last_updated: datetime
     created_at: datetime
     specialty: Optional[Dict[str, Any]] = None
@@ -29,6 +29,6 @@ class SessionSchedule(BaseModel):
     day: str  # Monday, Tuesday, etc.
     start_time: str  # HH:MM format
     end_time: str    # HH:MM format
-    module_id: str
-    teacher_id: str
+    module_id: int
+    teacher_id: int
     room: Optional[str] = None

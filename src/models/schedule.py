@@ -12,15 +12,13 @@ class ScheduleBase(SQLModel):
     pass
 
 class Schedule(ScheduleBase, table=True):
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    __tablename__ = "schedules"  # ✅ Add explicit table name
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
     last_updated: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    specialty_id: str = Field(foreign_key="specialty.id")
+    specialty_id: int = Field(foreign_key="public.specialty.id")
     specialty: Optional["Specialty"] = Relationship(back_populates="schedule")
     
-    # For timetable, we'll store it as JSON or have separate SessionSchedule table
-    # In practice, you might want a separate SessionSchedule table
-    
     __table_args__ = {'schema': 'public'}
-    

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional , Dict, Any
 from datetime import datetime
 from .user import UserResponse
 
@@ -17,8 +17,8 @@ class AdminUpdate(BaseModel):
 
 class AdminResponse(AdminBase):
     """Schema for admin response"""
-    id: str
-    user_id: str
+    id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     user: Optional[UserResponse] = None

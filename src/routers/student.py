@@ -7,15 +7,15 @@ from pathlib import Path
 
 from ..core.database import get_session
 from ..core.dependencies import get_current_student, get_current_profile
-from controllers.student_controller import student_controller
-from controllers.attendance_controller import attendance_controller
-from controllers.justification_controller import justification_controller
-from schema.justification import JustificationCreate, JustificationResponse
-from schema.attendance import AttendanceRecordResponse, AttendanceSummary
-from schema.filter import DateRangeFilter
-from schema.stats import StudentStatistics
-from models.student import Student
-from models.user import User
+from ..controllers.student_controller import student_controller
+from ..controllers.attendance_controller import attendance_controller
+from ..controllers.justification_controller import justification_controller
+from ..schema.justification import JustificationCreate, JustificationResponse
+from ..schema.attendance import AttendanceRecordResponse, AttendanceSummary
+from ..schema.filter import DateRangeFilter
+from ..schema.stats import StudentStatistics
+from ..models.student import Student
+from ..models.user import User
 
 router = APIRouter(prefix="/students", tags=["students"])
 

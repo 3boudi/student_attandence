@@ -9,8 +9,8 @@ class AttendanceRecordBase(BaseModel):
 
 class AttendanceRecordCreate(AttendanceRecordBase):
     """Schema for creating an attendance record"""
-    session_id: str
-    student_id: str
+    session_id: int
+    student_id: int
 
 class AttendanceRecordUpdate(BaseModel):
     """Schema for updating an attendance record"""
@@ -18,9 +18,9 @@ class AttendanceRecordUpdate(BaseModel):
 
 class AttendanceRecordResponse(AttendanceRecordBase):
     """Schema for attendance record response"""
-    id: str
-    session_id: str
-    student_id: str
+    id: int
+    session_id: int
+    student_id: int
     timestamp: datetime
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -32,8 +32,8 @@ class AttendanceRecordResponse(AttendanceRecordBase):
 
 class AttendanceBulkCreate(BaseModel):
     """Schema for bulk attendance marking"""
-    session_id: str
-    student_ids: list[str]
+    session_id: int
+    student_ids: list[int]
     status: AttendanceStatus = AttendanceStatus.PRESENT
 
 class AttendanceSummary(BaseModel):

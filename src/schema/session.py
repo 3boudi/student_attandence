@@ -10,8 +10,8 @@ class SessionBase(BaseModel):
 
 class SessionCreate(SessionBase):
     """Schema for creating a session"""
-    module_id: str
-    teacher_id: str
+    module_id: int
+    teacher_id: int
 
 class SessionUpdate(BaseModel):
     """Schema for updating a session"""
@@ -22,9 +22,9 @@ class SessionUpdate(BaseModel):
 
 class SessionResponse(SessionBase):
     """Schema for session response"""
-    id: str
-    module_id: str
-    teacher_id: str
+    id: int
+    module_id: int
+    teacher_id: int
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

@@ -3,7 +3,7 @@ from sqlmodel import SQLModel, Session, select
 from fastapi import HTTPException, status
 import uuid
 
-from ..schema.base import PaginationParams, DateRangeFilter
+from ..schema import PaginationParams
 
 ModelType = TypeVar("ModelType", bound=SQLModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=SQLModel)
@@ -15,7 +15,7 @@ class BaseController(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
     
-    def get(self, db: Session, id: str) -> Optional[ModelType]:
+    def get(self, db: Session, id: int) -> Optional[ModelType]:
         """Get a single item by ID"""
         item = db.get(self.model, id)
         if not item:
@@ -66,7 +66,7 @@ class BaseController(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def update(
         self, 
         db: Session, 
-        id: str, 
+        id: int, 
         obj_in: UpdateSchemaType
     ) -> ModelType:
         """Update an existing item"""
@@ -83,13 +83,13 @@ class BaseController(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
     
-    def delete(self, db: Session, id: str) -> ModelType:
+    def delete(self, db: Session, id: int) -> ModelType:
         """Delete an item"""
         db_obj = self.get(db, id)
         db.delete(db_obj)
         db.commit()
         return db_obj
     
-    def exists(self, db: Session, id: str) -> bool:
+    def exists(self, db: Session, id: int) -> bool:
         """Check if an item exists"""
         return bool(db.get(self.model, id))

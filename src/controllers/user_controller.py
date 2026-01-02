@@ -2,18 +2,18 @@ from typing import List, Optional, Dict, Any
 from sqlmodel import Session, select
 from fastapi import HTTPException, status
 
-from models.user import User
-from models.student import Student
-from models.teacher import Teacher
-from models.admin import Admin
-from schema.user import UserCreate, UserUpdate, UserWithProfile
+from ..models.user import User
+from ..models.student import Student
+from ..models.teacher import Teacher
+from ..models.admin import Admin
+from ..schema.user import UserCreate, UserUpdate, UserWithProfile
 from .base_controller import BaseController
 
 class UserController(BaseController[User, UserCreate, UserUpdate]):
     def __init__(self):
         super().__init__(User)
     
-    def get_user_with_profile(self, db: Session, user_id: str) -> UserWithProfile:
+    def get_user_with_profile(self, db: Session, user_id: int) -> UserWithProfile:
         """Get user with their role-specific profile"""
         user = self.get(db, user_id)
         
@@ -48,7 +48,7 @@ class UserController(BaseController[User, UserCreate, UserUpdate]):
         user = db.exec(query).first()
         return user
     
-    def update_user_role(self, db: Session, user_id: str, role: str) -> User:
+    def update_user_role(self, db: Session, user_id: int, role: str) -> User:
         """Update user role"""
         user = self.get(db, user_id)
         user.role = role
@@ -76,7 +76,7 @@ class UserController(BaseController[User, UserCreate, UserUpdate]):
         db.refresh(user)
         return user
     
-    def deactivate_user(self, db: Session, user_id: str) -> User:
+    def deactivate_user(self, db: Session, user_id: int) -> User:
         """Deactivate a user"""
         user = self.get(db, user_id)
         user.is_active = False
@@ -85,7 +85,7 @@ class UserController(BaseController[User, UserCreate, UserUpdate]):
         db.refresh(user)
         return user
     
-    def activate_user(self, db: Session, user_id: str) -> User:
+    def activate_user(self, db: Session, user_id: int) -> User:
         """Activate a user"""
         user = self.get(db, user_id)
         user.is_active = True

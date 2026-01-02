@@ -3,16 +3,16 @@ from sqlmodel import Session, select, and_
 from fastapi import HTTPException, status
 from datetime import datetime, timedelta
 
-from models.notification import Notification
-from models.enums import NotificationType
-from schema.notification import NotificationCreate, NotificationUpdate
+from ..models.notification import Notification
+from ..models.enums import NotificationType
+from ..schema.notification import NotificationCreate, NotificationUpdate
 from .base_controller import BaseController
 
 class NotificationController(BaseController[Notification, NotificationCreate, NotificationUpdate]):
     def __init__(self):
         super().__init__(Notification)
     
-    def get_user_notifications(self, db: Session, user_id: str,
+    def get_user_notifications(self, db: Session, user_id: int,
                               unread_only: bool = False,
                               limit: int = 50) -> List[Notification]:
         """Get notifications for a specific user"""
@@ -28,7 +28,7 @@ class NotificationController(BaseController[Notification, NotificationCreate, No
         notifications = db.exec(query).all()
         return notifications
     
-    def mark_as_read(self, db: Session, notification_id: str) -> Notification:
+    def mark_as_read(self, db: Session, notification_id: int) -> Notification:
         """Mark a notification as read"""
         notification = self.get(db, notification_id)
         notification.is_read = True
@@ -37,7 +37,7 @@ class NotificationController(BaseController[Notification, NotificationCreate, No
         db.refresh(notification)
         return notification
     
-    def mark_all_as_read(self, db: Session, user_id: str) -> int:
+    def mark_all_as_read(self, db: Session, user_id: int) -> int:
         """Mark all user notifications as read"""
         notifications = self.get_user_notifications(db, user_id, unread_only=True)
         
@@ -48,7 +48,7 @@ class NotificationController(BaseController[Notification, NotificationCreate, No
         db.commit()
         return len(notifications)
     
-    def create_notification(self, db: Session, user_id: str,
+    def create_notification(self, db: Session, user_id: int,
                            title: str, message: str,
                            notification_type: NotificationType) -> Notification:
         """Create a new notification"""
@@ -64,7 +64,7 @@ class NotificationController(BaseController[Notification, NotificationCreate, No
         db.refresh(notification)
         return notification
     
-    def create_bulk_notifications(self, db: Session, user_ids: List[str],
+    def create_bulk_notifications(self, db: Session, user_ids: List[int],
                                  title: str, message: str,
                                  notification_type: NotificationType) -> List[Notification]:
         """Create notifications for multiple users"""
@@ -88,7 +88,7 @@ class NotificationController(BaseController[Notification, NotificationCreate, No
         
         return notifications
     
-    def get_unread_count(self, db: Session, user_id: str) -> int:
+    def get_unread_count(self, db: Session, user_id: int) -> int:
         """Get count of unread notifications for a user"""
         query = select(Notification).where(
             Notification.user_id == user_id,

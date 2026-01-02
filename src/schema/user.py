@@ -26,7 +26,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     """Schema for user response"""
-    id: str
+    id: int
     is_active: bool
     is_superuser: bool
     is_verified: bool

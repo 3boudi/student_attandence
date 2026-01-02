@@ -11,11 +11,13 @@ class ModuleBase(SQLModel):
     module_code: str = Field(unique=True, index=True)
 
 class Module(ModuleBase, table=True):
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    __tablename__ = "module"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    specialty_id: Optional[str] = Field(foreign_key="specialty.id")
+    specialty_id: Optional[int] = Field(foreign_key="public.specialty.id")
     specialty: Optional["Specialty"] = Relationship(back_populates="modules")
     
     teachers: List["Teacher"] = Relationship(

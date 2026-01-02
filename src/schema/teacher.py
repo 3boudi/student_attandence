@@ -20,8 +20,8 @@ class TeacherUpdate(BaseModel):
 
 class TeacherResponse(TeacherBase):
     """Schema for teacher response"""
-    id: str
-    user_id: str
+    id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     user: Optional[UserResponse] = None
@@ -32,8 +32,8 @@ class TeacherResponse(TeacherBase):
 
 class TeacherAssignment(BaseModel):
     """Schema for teacher-module assignment"""
-    teacher_id: str
-    module_id: str
+    teacher_id: int
+    module_id: int
     academic_year: Optional[str] = None
     semester: Optional[str] = None
     teaching_hours_per_week: Optional[int] = None

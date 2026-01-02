@@ -7,27 +7,27 @@ import jwt
 
 from ..core.database import get_session
 from ..core.config import settings
-from models.user import User
-from models.student import Student
-from models.teacher import Teacher
-from models.admin import Admin
+from ..models.user import User
+from ..models.student import Student
+from ..models.teacher import Teacher
+from ..models.admin import Admin
 from .schemas import (
     UserCreate, UserRead, UserUpdate,
-    StudentRegistration, TeacherRegistration, AdminRegistration
+    StudentRegistration, TeacherRegistration, AdminRegistration,
+    LoginRequest
 )
 from .backend import get_jwt_strategy
 
 auth_router = APIRouter(tags=["Authentication"])
 
-# Password hashing
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing using bcrypt directly
+import bcrypt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -51,11 +51,11 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 # ==================== LOGIN ====================
 @auth_router.post("/login")
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: LoginRequest,
     db: Session = Depends(get_session)
 ):
     """Login for all users (student, teacher, admin)"""
-    user = authenticate_user(db, form_data.username, form_data.password)
+    user = authenticate_user(db, login_data.email, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -116,8 +116,8 @@ async def register_student(
     
     # Create student profile
     student = Student(
-        user_id=user.id,
-        specialty_id=registration.student_data.specialty_id
+        user_id=user.id
+        # specialty_id commented out for auth testing
     )
     db.add(student)
     db.commit()

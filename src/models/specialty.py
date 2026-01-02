@@ -5,14 +5,15 @@ from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from .associations import TeacherSpecialty
 from .schedule import Schedule
-import uuid
 
 class SpecialtyBase(SQLModel):
     name: str = Field(index=True)
     year_level: str
 
 class Specialty(SpecialtyBase, table=True):
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    __tablename__ = "specialty"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
