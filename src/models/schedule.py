@@ -1,24 +1,18 @@
-from __future__ import annotations
-
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List, Dict, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
-import uuid
 
 if TYPE_CHECKING:
     from .specialty import Specialty
+    from .sday import SDay
 
-class ScheduleBase(SQLModel):
-    pass
+class Schedule(SQLModel, table=True):
+    __tablename__ = "schedule"
+    __table_args__ = {"schema": "public"}
 
-class Schedule(ScheduleBase, table=True):
-    __tablename__ = "schedules"  # ✅ Add explicit table name
-    
     id: Optional[int] = Field(default=None, primary_key=True)
+    specialty_id: int = Field(foreign_key="public.specialty.id", unique=True)
     last_updated: datetime = Field(default_factory=datetime.utcnow)
-    
-    # Relationships
-    specialty_id: int = Field(foreign_key="public.specialty.id")
-    specialty: Optional["Specialty"] = Relationship(back_populates="schedule")
-    
-    __table_args__ = {'schema': 'public'}
+
+    specialty: "Specialty" = Relationship(back_populates="schedule")
+    s_days: List["SDay"] = Relationship(back_populates="schedule")

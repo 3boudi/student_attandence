@@ -7,11 +7,15 @@ from .config import settings
 
 # ✅ IMPORTANT: Import in dependency order!
 # 1. Base tables first (no foreign keys)
+from ..models.schedule import Schedule
+from ..models.specialty import Specialty
 from ..models.user import User
 # 2. Tables that depend only on base tables
 from ..models.admin import Admin
 from ..models.teacher import Teacher
 from ..models.student import Student
+
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -121,31 +125,30 @@ def init_db():
         # Drop ALL existing tables and types in public schema first
         with Session(engine) as session:
             # Drop all tables with CASCADE
-            #session.exec(text("""
-            #    DO $$ 
-            #    DECLARE 
-            #        r RECORD;
-            #    BEGIN
-            #        -- Drop all tables
-            #        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-            #            EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
-            #        END LOOP;
-            #        
-            #        -- Drop all custom types (this fixes the pg_type error)
-            #        FOR r IN (SELECT typname FROM pg_type t 
-            #                  JOIN pg_namespace n ON t.typnamespace = n.oid 
-             #                 WHERE n.nspname = 'public' AND t.typtype = 'c') LOOP
-            #            EXECUTE 'DROP TYPE IF EXISTS public.' || quote_ident(r.typname) || ' CASCADE';
-            #        END LOOP;
-             #   END $$;
-            #"""))
-           #session.commit()
-            #logger.info("🗑️ All existing tables and types dropped!")
+            session.exec(text("""
+                DO $$ 
+                DECLARE 
+                    r RECORD;
+                BEGIN
+                    -- Drop all tables
+                    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                        EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+                    END LOOP;
+                    
+                    -- Drop all custom types (this fixes the pg_type error)
+                    FOR r IN (SELECT typname FROM pg_type t 
+                              JOIN pg_namespace n ON t.typnamespace = n.oid 
+                              WHERE n.nspname = 'public' AND t.typtype = 'c') LOOP
+                        EXECUTE 'DROP TYPE IF EXISTS public.' || quote_ident(r.typname) || ' CASCADE';
+                    END LOOP;
+                END $$;
+            """))
+            session.commit()
+            logger.info("🗑️ All existing tables and types dropped!")
         
         # Create only User, Student, Teacher, Admin tables
-        
-            SQLModel.metadata.create_all(engine)
-            logger.info("✅ Tables created: users, students, teacher, admins")
+        SQLModel.metadata.create_all(engine, checkfirst=True)
+        logger.info("✅ Tables created: users, students, teacher, admins")
         
         # Seed test users
         with Session(engine) as session:

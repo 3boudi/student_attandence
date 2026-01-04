@@ -1,14 +1,16 @@
 from __future__ import annotations
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List, TYPE_CHECKING
 
-class TeacherBase(SQLModel):
-    pass
+if TYPE_CHECKING:
+    from .teacher_modules import TeacherModules
 
-class Teacher(TeacherBase, table=True):
+class Teacher(SQLModel, table=True):
     __tablename__ = "teacher"
-    
+    __table_args__ = {"schema": "public"}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="public.users.id", unique=True)
-    
-    __table_args__ = {'schema': 'public'}
+
+    # Relationships
+    teacher_modules: List["TeacherModules"] = Relationship(back_populates="teacher")

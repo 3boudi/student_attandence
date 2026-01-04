@@ -1,34 +1,23 @@
-from __future__ import annotations
-
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
-import uuid
 
 if TYPE_CHECKING:
-    from .module import Module
-    from .teacher import Teacher
+    from .teacher_modules import TeacherModules
     from .attendance import AttendanceRecord
 
-class SessionBase(SQLModel):
-    session_code: str = Field(index=True)
-    datetime: datetime
-    duration_minutes: int = Field(default=60)
+class Session(SQLModel, table=True):
+    __tablename__ = "sessions"
+    __table_args__ = {"schema": "public"}
 
-class Session(SessionBase, table=True):
-    __tablename__ = "sessions"  # ✅ Add explicit table name
-    
     id: Optional[int] = Field(default=None, primary_key=True)
+    session_code: str
+    session_qrcode: str
+    date_time: datetime = Field(default_factory=datetime.utcnow)
+    duration_minutes: int = Field(default=60)
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    # Relationships
-    module_id: int = Field(foreign_key="public.module.id")
-    module: Optional["Module"] = Relationship(back_populates="sessions")
-    
-    teacher_id: int = Field(foreign_key="public.teachers.id")  # ✅ Changed to "teachers"
-    teacher: Optional["Teacher"] = Relationship(back_populates="sessions")
-    
+
+    teacher_module_id: int = Field(foreign_key="public.teacher_modules.id")
+
+    teacher_module: "TeacherModules" = Relationship(back_populates="sessions")
     attendance_records: List["AttendanceRecord"] = Relationship(back_populates="session")
-    
-    __table_args__ = {'schema': 'public'}
