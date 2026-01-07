@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from .schedule import Schedule
     from .module import Module
 
+
 class SDay(SQLModel, table=True):
     __tablename__ = "s_day"
     __table_args__ = {"schema": "public"}
@@ -18,6 +19,6 @@ class SDay(SQLModel, table=True):
     schedule_id: int = Field(foreign_key="public.schedule.id")
     module_id: int = Field(foreign_key="public.module.id")
 
-    # Relationships
-    schedule: "Schedule" = Relationship(back_populates="s_days")
-    module: "Module" = Relationship(back_populates="s_days")
+    # Relationships - use forward references (auto-quoted by __future__ annotations)
+    schedule: Schedule = Relationship(back_populates="s_days")
+    module: Module = Relationship(back_populates="s_days")

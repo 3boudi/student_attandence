@@ -1,10 +1,13 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from .specialty import Specialty
     from .enrollement import Enrollment
     from .attendance import AttendanceRecord
+    from .notification import Notification
+
 
 class Student(SQLModel, table=True):
     __tablename__ = "students"
@@ -12,8 +15,10 @@ class Student(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="public.users.id", unique=True)
-    specialty_id: int = Field(foreign_key="public.specialty.id")
-
+    specialty_id: int = Field(foreign_key="public.specialty.id" , nullable=False)
+    
+    
+    notifications: List["Notification"] = Relationship(back_populates="student")
     specialty: "Specialty" = Relationship(back_populates="students")
     enrollments: List["Enrollment"] = Relationship(back_populates="student")
     attendance_records: List["AttendanceRecord"] = Relationship(back_populates="student")

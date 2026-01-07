@@ -14,7 +14,12 @@ class Enrollment(SQLModel, table=True):
     module_id: int = Field(foreign_key="public.module.id")
 
     number_of_absences: int = Field(default=0)
+    number_of_absences_justified: int = Field(default=0)
     is_excluded: bool = Field(default=False)
+    
+    # Denormalized student info for quick access
+    student_name: Optional[str] = Field(default=None)
+    student_email: Optional[str] = Field(default=None)
 
     student: "Student" = Relationship(back_populates="enrollments")
     module: "Module" = Relationship(back_populates="enrollments")

@@ -1,283 +1,282 @@
-from typing import List, Optional, Dict, Any
-from sqlmodel import Session, select, and_
+from typing import List, Dict, Any, Optional
+from sqlmodel import Session, select
 from fastapi import HTTPException, status
-from datetime import datetime, timedelta
-import secrets
-import string
+from datetime import datetime
 
-from models.teacher import Teacher
-from models.user import User
-from models.session import Session as ClassSession
-from models.attendance import AttendanceRecord
-from models.justification import Justification
-from models.module import Module
-from models.specialty import Specialty
-from models.enums import AttendanceStatus, JustificationStatus, NotificationType
-from schema.session import SessionCreate, SessionUpdate
-from .base_controller import BaseController
-from models.student import Student
+from ..models.session import Session as ClassSession
+from ..models.attendance import AttendanceRecord
+from ..models.teacher import Teacher
+from ..models.teacher_modules import TeacherModules
+from ..models.enrollement import Enrollment
+from ..models.module import Module
+from ..models.enums import AttendanceStatus
+from .session_controller import SessionController
 
-class TeacherController(BaseController[Teacher, None, None]):
-    def __init__(self):
-        super().__init__(Teacher)
+
+class TeacherController:
+    """
+    Teacher Controller - Handles teacher operations
     
-    def get_teacher_by_user_id(self, db: Session, user_id: str) -> Optional[Teacher]:
-        """Get teacher by user ID"""
-        query = select(Teacher).where(Teacher.user_id == user_id)
-        teacher = db.exec(query).first()
-        return teacher
+    Workflow:
+        1. Teacher creates session → SessionController generates QR + code
+        2. Creates attendance records for ALL enrolled students (status=ABSENT)
+        3. Student scans QR or enters code → mark_attendance → status=PRESENT
+        4. Teacher closes session → no more attendance marking
     
-    def get_teacher_with_user(self, db: Session, teacher_id: str) -> Optional[Teacher]:
-        """Get teacher with user details"""
-        query = select(Teacher).where(Teacher.id == teacher_id)
-        teacher = db.exec(query).first()
+    Methods:
+        - create_session(): Create session with QR code and attendance records
+        - close_session(): Close session
+        - get_my_modules(): Get teacher's assigned modules
+        - validate_attendance_records(): View attendance for a session
+    """
+    
+    def __init__(self, session: Session):
+        self.session = session
+        self.session_ctrl = SessionController(session)
+    
+    def create_session(
+        self,
+        teacher_id: int,
+        module_id: int,
+        duration_minutes: int = 90,
+        room: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a new session with QR code and attendance records.
         
-        if teacher:
-            user = db.get(User, teacher.user_id)
-            teacher.user = user
+        Workflow:
+            1. Verify teacher is assigned to module
+            2. Create session with share_code
+            3. Generate QR code → save to uploads/qrcodes/
+            4. Create attendance records for ALL enrolled students (ABSENT)
         
-        return teacher
-    
-    def create_session(self, db: Session, teacher_id: str, 
-                      module_id: str, duration_minutes: int = 60) -> ClassSession:
-        """Create a new session for a module"""
-        # Verify teacher is assigned to the module
-        from models.teacher import TeacherModule
-        assignment = db.exec(
-            select(TeacherModule).where(
-                TeacherModule.teacher_id == teacher_id,
-                TeacherModule.module_id == module_id
+        Args:
+            teacher_id: ID of the teacher
+            module_id: ID of the module
+            duration_minutes: Session duration (default 90)
+            
+        Returns:
+            dict: Session info with QR code URL and share code
+        """
+        # Verify teacher exists
+        teacher = self.session.get(Teacher, teacher_id)
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Teacher with ID {teacher_id} not found"
+            )
+        
+        # Verify module exists
+        module = self.session.get(Module, module_id)
+        if not module:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Module with ID {module_id} not found"
+            )
+        
+        # Verify teacher is assigned to this module
+        teacher_module = self.session.exec(
+            select(TeacherModules).where(
+                TeacherModules.teacher_id == teacher_id,
+                TeacherModules.module_id == module_id
             )
         ).first()
         
-        if not assignment:
+        if not teacher_module:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Teacher is not assigned to this module"
             )
         
-        # Generate unique session code
-        session_code = self._generate_session_code()
+        # Generate share code using SessionController
+        share_code = self.session_ctrl.generate_share_code()
         
         # Create session
-        session = ClassSession(
-            teacher_id=teacher_id,
-            module_id=module_id,
-            session_code=session_code,
-            datetime=datetime.utcnow(),
+        new_session = ClassSession(
+            teacher_module_id=teacher_module.id,
+            date_time=datetime.utcnow(),
             duration_minutes=duration_minutes,
+            session_code=share_code,
+            room=room,
             is_active=True
         )
+        self.session.add(new_session)
+        self.session.commit()
+        self.session.refresh(new_session)
         
-        db.add(session)
-        db.commit()
-        db.refresh(session)
-        return session
-    
-    def _generate_session_code(self, length: int = 6) -> str:
-        """Generate a random session code"""
-        alphabet = string.ascii_uppercase + string.digits
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
-    
-    def validate_justification(self, db: Session, teacher_id: str,
-                              justification_id: str, 
-                              decision: str, 
-                              reason: Optional[str] = None) -> Justification:
-        """Validate a student's justification"""
-        justification = db.get(Justification, justification_id)
+        # Generate QR code using SessionController
+        qrcode_url = self.session_ctrl.generate_qrcode(new_session.id, share_code)
+        new_session.session_qrcode = qrcode_url
+        self.session.add(new_session)
+        self.session.commit()
         
-        if not justification:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Justification not found"
+        # Get all enrollments for this module
+        enrollments = self.session.exec(
+            select(Enrollment).where(
+                Enrollment.module_id == module_id,
+                Enrollment.is_excluded == False
             )
-        
-        # Check if teacher is authorized (teacher should be the one who created the session)
-        attendance_record = db.get(AttendanceRecord, justification.attendance_record_id)
-        if not attendance_record:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Attendance record not found"
-            )
-        
-        session = db.get(ClassSession, attendance_record.session_id)
-        if not session or session.teacher_id != teacher_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to validate this justification"
-            )
-        
-        # Update justification status
-        if decision == "approve":
-            justification.status = JustificationStatus.APPROVED
-            # Update attendance status to excluded
-            attendance_record.status = AttendanceStatus.EXCLUDED
-            db.add(attendance_record)
-            
-            # Create notification for student
-            self._create_validation_notification(
-                db, attendance_record.student_id, 
-                "Justification Approved", 
-                "Your justification has been approved",
-                NotificationType.JUSTIFICATION_APPROVED
-            )
-        elif decision == "reject":
-            justification.status = JustificationStatus.REJECTED
-            justification.rejection_reason = reason
-            
-            # Create notification for student
-            self._create_validation_notification(
-                db, attendance_record.student_id,
-                "Justification Rejected",
-                f"Your justification has been rejected. Reason: {reason}",
-                NotificationType.JUSTIFICATION_REJECTED
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid decision. Must be 'approve' or 'reject'"
-            )
-        
-        justification.validation_date = datetime.utcnow()
-        justification.validator_id = teacher_id
-        
-        db.add(justification)
-        db.commit()
-        db.refresh(justification)
-        return justification
-    
-    def _create_validation_notification(self, db: Session, student_id: str,
-                                       title: str, message: str, 
-                                       notification_type: NotificationType):
-        """Create notification for student about justification validation"""
-        from models.notification import Notification
-        
-        # Get student to get user_id
-        student = db.get(Student, student_id)
-        if student:
-            notification = Notification(
-                user_id=student.user_id,
-                title=title,
-                message=message,
-                type=notification_type
-            )
-            db.add(notification)
-    
-    def view_attendance_records(self, db: Session, teacher_id: str,
-                               module_id: Optional[str] = None,
-                               session_id: Optional[str] = None,
-                               date: Optional[datetime] = None) -> List[AttendanceRecord]:
-        """View attendance records for teacher's sessions"""
-        query = select(AttendanceRecord)
-        
-        # Join with session and filter by teacher
-        query = query.join(ClassSession).where(ClassSession.teacher_id == teacher_id)
-        
-        # Apply additional filters
-        if module_id:
-            query = query.where(ClassSession.module_id == module_id)
-        if session_id:
-            query = query.where(ClassSession.id == session_id)
-        if date:
-            # Filter by date (ignoring time)
-            query = query.where(
-                ClassSession.datetime >= date.replace(hour=0, minute=0, second=0),
-                ClassSession.datetime <= date.replace(hour=23, minute=59, second=59)
-            )
-        
-        # Order by session datetime
-        query = query.order_by(ClassSession.datetime.desc())
-        
-        attendance_records = db.exec(query).all()
-        return attendance_records
-    
-    def get_teacher_modules(self, db: Session, teacher_id: str) -> List[Module]:
-        """Get all modules assigned to a teacher"""
-        from models.teacher import TeacherModule
-        
-        query = select(Module).join(TeacherModule).where(
-            TeacherModule.teacher_id == teacher_id
-        )
-        modules = db.exec(query).all()
-        return modules
-    
-    def get_teacher_specialties(self, db: Session, teacher_id: str) -> List[Specialty]:
-        """Get all specialties assigned to a teacher"""
-        from models.teacher import TeacherSpecialty
-        
-        query = select(Specialty).join(TeacherSpecialty).where(
-            TeacherSpecialty.teacher_id == teacher_id
-        )
-        specialties = db.exec(query).all()
-        return specialties
-    
-    def close_session(self, db: Session, teacher_id: str, session_id: str) -> ClassSession:
-        """Close an active session"""
-        session = db.get(ClassSession, session_id)
-        
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
-            )
-        
-        if session.teacher_id != teacher_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to close this session"
-            )
-        
-        session.is_active = False
-        db.add(session)
-        db.commit()
-        db.refresh(session)
-        return session
-    
-    def get_pending_justifications(self, db: Session, teacher_id: str) -> List[Justification]:
-        """Get pending justifications for teacher's sessions"""
-        query = select(Justification).join(AttendanceRecord).join(ClassSession).where(
-            Justification.status == JustificationStatus.PENDING,
-            ClassSession.teacher_id == teacher_id
-        )
-        
-        justifications = db.exec(query).all()
-        return justifications
-    
-    def get_teacher_statistics(self, db: Session, teacher_id: str) -> Dict[str, Any]:
-        """Get statistics for a teacher"""
-        # Get all teacher's sessions
-        sessions = db.exec(
-            select(ClassSession).where(ClassSession.teacher_id == teacher_id)
         ).all()
         
-        # Get attendance records for these sessions
-        session_ids = [session.id for session in sessions]
-        attendance_query = select(AttendanceRecord).where(
-            AttendanceRecord.session_id.in_(session_ids)
-        )
-        attendance_records = db.exec(attendance_query).all()
-        
-        # Calculate statistics
-        total_sessions = len(sessions)
-        active_sessions = sum(1 for s in sessions if s.is_active)
-        
-        total_attendance = len(attendance_records)
-        present = sum(1 for r in attendance_records if r.status == AttendanceStatus.PRESENT)
-        absent = sum(1 for r in attendance_records if r.status == AttendanceStatus.ABSENT)
-        
-        # Get pending justifications
-        pending_justifications = len(self.get_pending_justifications(db, teacher_id))
+        # Create attendance records for ALL enrolled students (ABSENT by default)
+        attendance_records = []
+        for enrollment in enrollments:
+            attendance = AttendanceRecord(
+                session_id=new_session.id,
+                enrollement_id=enrollment.id,
+                status=AttendanceStatus.ABSENT
+            )
+            self.session.add(attendance)
+            self.session.commit()
+            self.session.refresh(attendance)
+            
+            attendance_records.append({
+                "attendance_id": attendance.id,
+                "student_id": enrollment.student_id,
+                "student_name": enrollment.student_name or "Unknown",
+                "student_email": enrollment.student_email or "N/A",
+                "enrollment_id": enrollment.id,
+                "number_of_absences": enrollment.number_of_absences,
+                "number_of_absences_justified": enrollment.number_of_absences_justified,
+                "is_excluded": enrollment.is_excluded,
+                "status": AttendanceStatus.ABSENT.value
+            })
         
         return {
-            "total_sessions": total_sessions,
-            "active_sessions": active_sessions,
-            "total_attendance_records": total_attendance,
-            "present_count": present,
-            "absent_count": absent,
-            "attendance_rate": round((present / total_attendance * 100), 2) if total_attendance > 0 else 0,
-            "pending_justifications": pending_justifications,
-            "assigned_modules": len(self.get_teacher_modules(db, teacher_id)),
-            "assigned_specialties": len(self.get_teacher_specialties(db, teacher_id))
+            "session_id": new_session.id,
+            "module_id": module_id,
+            "module_name": module.name,
+            "teacher_id": teacher_id,
+            "share_code": share_code,
+            "qrcode_url": qrcode_url,
+            "date_time": new_session.date_time,
+            "duration_minutes": duration_minutes,
+            "room": room,
+            "is_active": True,
+            "students_enrolled": len(attendance_records),
+            "attendance_records": attendance_records,
+            "message": f"Session created. {len(attendance_records)} attendance records created."
         }
+    
+    def close_session(self, session_id: int, teacher_id: int) -> Dict[str, Any]:
+        """Close session by delegating to SessionController"""
+        return self.session_ctrl.close_session(session_id, teacher_id)
+    
+    def get_my_modules(self, teacher_id: int) -> List[Dict[str, Any]]:
+        """Get all modules assigned to teacher"""
+        teacher = self.session.get(Teacher, teacher_id)
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Teacher with ID {teacher_id} not found"
+            )
+        
+        teacher_modules = self.session.exec(
+            select(TeacherModules).where(TeacherModules.teacher_id == teacher_id)
+        ).all()
+        
+        modules = []
+        for tm in teacher_modules:
+            module = self.session.get(Module, tm.module_id)
+            if module:
+                # Count enrolled students
+                enrollments = self.session.exec(
+                    select(Enrollment).where(
+                        Enrollment.module_id == module.id,
+                        Enrollment.is_excluded == False
+                    )
+                ).all()
+                
+                modules.append({
+                    "teacher_module_id": tm.id,
+                    "module_id": module.id,
+                    "module_name": module.name,
+                    "module_code": module.code,
+                    "specialty_id": module.specialty_id,
+                    "enrolled_students": len(enrollments)
+                })
+        
+        return modules
+    
+    def get_my_sessions(self, teacher_id: int) -> List[Dict[str, Any]]:
+        """Get all sessions created by teacher"""
+        teacher_modules = self.session.exec(
+            select(TeacherModules).where(TeacherModules.teacher_id == teacher_id)
+        ).all()
+        
+        sessions = []
+        for tm in teacher_modules:
+            module = self.session.get(Module, tm.module_id)
+            tm_sessions = self.session.exec(
+                select(ClassSession).where(ClassSession.teacher_module_id == tm.id)
+            ).all()
+            
+            for sess in tm_sessions:
+                # Get attendance stats
+                records = self.session.exec(
+                    select(AttendanceRecord).where(AttendanceRecord.session_id == sess.id)
+                ).all()
+                present = sum(1 for r in records if r.status == AttendanceStatus.PRESENT)
+                
+                sessions.append({
+                    "session_id": sess.id,
+                    "module_name": module.name if module else "Unknown",
+                    "share_code": sess.session_code,
+                    "qrcode_url": sess.session_qrcode,
+                    "date_time": sess.date_time,
+                    "duration_minutes": sess.duration_minutes,
+                    "room": sess.room,
+                    "is_active": sess.is_active,
+                    "total_students": len(records),
+                    "present": present
+                })
+        
+        return sessions
+    
+    def validate_attendance_records(self, session_id: int) -> Dict[str, Any]:
+        """Get detailed attendance for a session"""
+        session_obj = self.session.get(ClassSession, session_id)
+        if not session_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session with ID {session_id} not found"
+            )
+        
+        records = self.session.exec(
+            select(AttendanceRecord).where(AttendanceRecord.session_id == session_id)
+        ).all()
+        
+        students = []
+        for record in records:
+            enrollment = self.session.get(Enrollment, record.enrollement_id)
+            if enrollment and enrollment.student:
+                student = enrollment.student
+                user = student.user if student else None
+                students.append({
+                    "attendance_id": record.id,
+                    "student_id": student.id,
+                    "student_name": user.full_name if user else "Unknown",
+                    "status": record.status.value,
+                    "marked_at": record.created_at
+                })
+        
+        present = sum(1 for s in students if s["status"] == "PRESENT")
+        absent = sum(1 for s in students if s["status"] == "ABSENT")
+        
+        return {
+            "session_id": session_id,
+            "share_code": session_obj.session_code,
+            "qrcode_url": session_obj.session_qrcode,
+            "room": session_obj.room,
+            "is_active": session_obj.is_active,
+            "date_time": session_obj.date_time,
+            "statistics": {
+                "total": len(students),
+                "present": present,
+                "absent": absent,
+                "rate": round((present / len(students) * 100), 2) if students else 0
+            },
+            "students": students
+        }
+        
 
-teacher_controller = TeacherController()

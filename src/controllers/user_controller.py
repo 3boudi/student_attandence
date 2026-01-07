@@ -1,97 +1,164 @@
-from typing import List, Optional, Dict, Any
 from sqlmodel import Session, select
+from typing import Optional, Union
 from fastapi import HTTPException, status
 
 from ..models.user import User
 from ..models.student import Student
 from ..models.teacher import Teacher
 from ..models.admin import Admin
-from ..schema.user import UserCreate, UserUpdate, UserWithProfile
-from .base_controller import BaseController
 
-class UserController(BaseController[User, UserCreate, UserUpdate]):
-    def __init__(self):
-        super().__init__(User)
+
+class UserController:
+    """
+    User Controller - Handles user authentication status and profile management
     
-    def get_user_with_profile(self, db: Session, user_id: int) -> UserWithProfile:
-        """Get user with their role-specific profile"""
-        user = self.get(db, user_id)
-        
-        # Load profile based on role
-        if user.role == "student":
-            student = db.exec(
-                select(Student).where(Student.user_id == user.id)
-            ).first()
-            user.student_profile = student
-        elif user.role == "teacher":
-            teacher = db.exec(
-                select(Teacher).where(Teacher.user_id == user.id)
-            ).first()
-            user.teacher_profile = teacher
-        elif user.role == "admin":
-            admin = db.exec(
-                select(Admin).where(Admin.user_id == user.id)
-            ).first()
-            user.admin_profile = admin
-        
-        return user
+    Methods:
+        - is_logged_in(): Check if user is active (logged in)
+        - logout(): Allow user to exit the system
+        - view_profile(): Display user profile based on role (student/teacher/admin)
+    """
     
-    def get_users_by_role(self, db: Session, role: str, skip: int = 0, limit: int = 100) -> List[User]:
-        """Get users by role"""
-        query = select(User).where(User.role == role)
-        users = db.exec(query.offset(skip).limit(limit)).all()
-        return users
+    def __init__(self, session: Session):
+        self.session = session
     
-    def get_user_by_email(self, db: Session, email: str) -> Optional[User]:
-        """Get user by email"""
-        query = select(User).where(User.email == email)
-        user = db.exec(query).first()
-        return user
+    def is_logged_in(self, user_id: int) -> bool:
+        """
+        Check if the user is active (logged in) or not.
+        
+        Args:
+            user_id: The ID of the user to check
+            
+        Returns:
+            bool: True if user is active, False otherwise
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            return False
+        return user.is_active
     
-    def update_user_role(self, db: Session, user_id: int, role: str) -> User:
-        """Update user role"""
-        user = self.get(db, user_id)
-        user.role = role
+    def logout(self, user_id: int) -> dict:
+        """
+        Allow the user to exit the system by setting is_active to False.
         
-        # Remove existing profiles
-        if user.role != "student" and user.student_profile:
-            db.delete(user.student_profile)
-        if user.role != "teacher" and user.teacher_profile:
-            db.delete(user.teacher_profile)
-        if user.role != "admin" and user.admin_profile:
-            db.delete(user.admin_profile)
+        Args:
+            user_id: The ID of the user to logout
+            
+        Returns:
+            dict: Success message
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
         
-        # Create new profile if needed
-        if role == "student":
-            student = Student(user_id=user.id)
-            db.add(student)
-        elif role == "teacher":
-            teacher = Teacher(user_id=user.id)
-            db.add(teacher)
-        elif role == "admin":
-            admin = Admin(user_id=user.id)
-            db.add(admin)
-        
-        db.commit()
-        db.refresh(user)
-        return user
-    
-    def deactivate_user(self, db: Session, user_id: int) -> User:
-        """Deactivate a user"""
-        user = self.get(db, user_id)
         user.is_active = False
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return user
+        self.session.add(user)
+        self.session.commit()
+        
+        return {"message": "User logged out successfully"}
     
-    def activate_user(self, db: Session, user_id: int) -> User:
-        """Activate a user"""
-        user = self.get(db, user_id)
-        user.is_active = True
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return user
-
-user_controller = UserController()
+    def view_profile(self, user_id: int) -> dict:
+        """
+        Display the user's profile according to their role.
+        Only works if the user is logged in.
+        
+        Args:
+            user_id: The ID of the user
+            
+        Returns:
+            dict: User profile with role-specific information
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User is not logged in"
+            )
+        
+        # Base profile info
+        profile = {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "department": user.department,
+            "role": user.role,
+            "is_verified": user.is_verified,
+            "created_at": user.created_at
+        }
+        
+        # Add role-specific information
+        if user.role == "student":
+            student = self.session.exec(
+                select(Student).where(Student.user_id == user_id)
+            ).first()
+            if student:
+                profile["student_id"] = student.id
+                profile["specialty_id"] = student.specialty_id
+                
+        elif user.role == "teacher":
+            teacher = self.session.exec(
+                select(Teacher).where(Teacher.user_id == user_id)
+            ).first()
+            if teacher:
+                profile["teacher_id"] = teacher.id
+                
+        elif user.role == "admin":
+            admin = self.session.exec(
+                select(Admin).where(Admin.user_id == user_id)
+            ).first()
+            if admin:
+                profile["admin_id"] = admin.id
+                profile["is_superuser"] = user.is_superuser
+        
+        return profile
+    
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """
+        Get user by email address.
+        
+        Args:
+            email: The email address to search for
+            
+        Returns:
+            User or None
+        """
+        return self.session.exec(
+            select(User).where(User.email == email)
+        ).first()
+    
+    def get_user_role_profile(self, user_id: int) -> Optional[Union[Student, Teacher, Admin]]:
+        """
+        Get the role-specific profile for a user.
+        
+        Args:
+            user_id: The ID of the user
+            
+        Returns:
+            Student, Teacher, or Admin profile
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            return None
+        
+        if user.role == "student":
+            return self.session.exec(
+                select(Student).where(Student.user_id == user_id)
+            ).first()
+        elif user.role == "teacher":
+            return self.session.exec(
+                select(Teacher).where(Teacher.user_id == user_id)
+            ).first()
+        elif user.role == "admin":
+            return self.session.exec(
+                select(Admin).where(Admin.user_id == user_id)
+            ).first()
+        
+        return None

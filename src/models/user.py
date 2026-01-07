@@ -1,7 +1,9 @@
 from __future__ import annotations
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import Relationship, SQLModel, Field
+from typing import List, Optional
 from datetime import datetime
+
+from src.models.notification import Notification
 from .enums import *
 
 # Base User model
@@ -26,6 +28,6 @@ class User(UserBase, table=True):
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    
+    notifications: List["Notification"] = Relationship(back_populates="user")
     __table_args__ = {'schema': 'public'}
     

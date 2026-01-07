@@ -14,7 +14,8 @@ class Session(SQLModel, table=True):
     session_code: str
     session_qrcode: str
     date_time: datetime = Field(default_factory=datetime.utcnow)
-    duration_minutes: int = Field(default=60)
+    duration_minutes: int = Field(default=90)
+    room: Optional[str] = Field(default=None)
     is_active: bool = Field(default=True)
 
     teacher_module_id: int = Field(foreign_key="public.teacher_modules.id")

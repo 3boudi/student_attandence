@@ -21,4 +21,4 @@ class Justification(SQLModel, table=True):
     status: JustificationStatus = Field(default=JustificationStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    attendance_record: "AttendanceRecord" = Relationship(back_populates="justification")
+    attendance_record_rel: "AttendanceRecord" = Relationship(back_populates="justification")

@@ -142,7 +142,7 @@ Ref: teacher_modules.teacher_id > teacher.id // many-to-one: TeacherModules to T
 Ref: teacher_modules.module_id > module.id // many-to-one: TeacherModules to Module
 Ref: sessions.teacher_module_id > teacher_modules.id // many-to-one: Sessions to TeacherModules
 Ref: attendance_records.session_id > sessions.id // many-to-one: AttendanceRecords to Session
-Ref: attendance_records.student_id > students.id // many-to-one: AttendanceRecords to Student
+Ref: attendance_records.enrollments_id > enrollments.id // many-to-one: AttendanceRecords to Enrollments
 Ref: attendance_records.justification_id > justifications.id // one-to-one: AttendanceRecord to Justification (optional, unique)
 Ref: notifications.attendence_record_id > attendance_records.id // many-to-one: Notifications to AttendanceRecord (optional)
 Ref: report.admin_id > admins.id // many-to-one: Reports to User (as per code, FK to users.id)

@@ -1,12 +1,15 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
+
 from .enums import AttendanceStatus
 
 if TYPE_CHECKING:
     from .session import Session
-    from .student import Student
+    from .enrollement import Enrollment
     from .justification import Justification
+    from .module import Module
+
 
 class AttendanceRecord(SQLModel, table=True):
     __tablename__ = "attendance_records"
@@ -17,12 +20,14 @@ class AttendanceRecord(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     session_id: int = Field(foreign_key="public.sessions.id")
-    student_id: int = Field(foreign_key="public.students.id")
+    module_id: int = Field(foreign_key="public.module.id")
+    enrollement_id: int = Field(foreign_key="public.enrollments.id")
     justification_id: Optional[int] = Field(
         foreign_key="public.justifications.id",
         default=None,
         unique=True
     )
+    module: "Module" = Relationship(back_populates="attendance_records")
+    enrollement: "Enrollment" = Relationship(back_populates="attendance_records")
     session: "Session" = Relationship(back_populates="attendance_records")
-    student: "Student" = Relationship(back_populates="attendance_records")
-    justification: Optional["Justification"] = Relationship(back_populates="attendance_record")
+    justification: Optional["Justification"] = Relationship(back_populates="attendance_record_rel")

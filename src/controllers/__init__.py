@@ -1,27 +1,29 @@
-from .user_controller import user_controller
-from .student_controller import student_controller
-from .teacher_controller import teacher_controller
-from .admin_controller import admin_controller
-#from .specialty_controller import specialty_controller
-#from .module_controller import module_controller
-#from .schedule_controller import schedule_controller
-from .session_controller import session_controller
-from .attendance_controller import attendance_controller
-from .justification_controller import justification_controller
-from .notification_controller import notification_controller
-#from .report_controller import report_controller
+from .user_controller import UserController
+from .student_controller import StudentController
+from .teacher_controller import TeacherController
+from .admin_controller import AdminController
+from .specialty_controller import SpecialtyController
+from .module_controller import ModuleController
+from .schedule_controller import ScheduleController
+from .session_controller import SessionController
+from .attendance_controller import AttendanceController
+from .enrollment_controller import EnrollmentController
+from .justification_controller import JustificationController
+from .notification_controller import NotificationController
+from .report_controller import ReportController
 
 __all__ = [
-    "user_controller",
-    "student_controller",
-    "teacher_controller",
-    "admin_controller",
-    #"specialty_controller",
-    #"module_controller",
-    #"schedule_controller",
-    "session_controller",
-    "attendance_controller",
-    "justification_controller",
-    "notification_controller",
-    #"report_controller",
+    "UserController",
+    "StudentController",
+    "TeacherController",
+    "AdminController",
+    "SpecialtyController",
+    "ModuleController",
+    "ScheduleController",
+    "SessionController",
+    "AttendanceController",
+    "EnrollmentController",
+    "JustificationController",
+    "NotificationController",
+    "ReportController",
 ]
